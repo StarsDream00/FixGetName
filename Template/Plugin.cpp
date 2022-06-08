@@ -8,25 +8,19 @@
 #include <MC/Actor.hpp>
 #include <MC/Player.hpp>
 #include <MC/ItemStack.hpp>
-#include "Version.h"
 #include <LLAPI.h>
-#include <ServerAPI.h>
+#include <Utils/PlayerMap.h>
 
-Logger logger(PLUGIN_NAME);
-
-inline void CheckProtocolVersion() {
-#ifdef TARGET_BDS_PROTOCOL_VERSION
-    auto currentProtocol = LL::getServerProtocolVersion();
-    if (TARGET_BDS_PROTOCOL_VERSION != currentProtocol)
-    {
-        logger.warn("Protocol version not match, target version: {}, current version: {}.",
-            TARGET_BDS_PROTOCOL_VERSION, currentProtocol);
-        logger.warn("This will most likely crash the server, please use the Plugin that matches the BDS version!");
-    }
-#endif // TARGET_BDS_PROTOCOL_VERSION
-}
+playerMap<string> ORIG_NAME;
 
 void PluginInit()
 {
-    CheckProtocolVersion();
+    Event::PlayerPreJoinEvent::subscribe([](Event::PlayerPreJoinEvent ev) {
+        ORIG_NAME[(ServerPlayer*)ev.mPlayer] = ev.mPlayer->getRealName();
+        return true;
+        });
+}
+
+THook(string&, "?getNameTag@Actor@@UEBAAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ", ServerPlayer* x) {
+    return ORIG_NAME.get(x);
 }
